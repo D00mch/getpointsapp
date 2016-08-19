@@ -23,6 +23,7 @@ public class Scene {
     private RelativeLayout mRelativeLayout;
     private ImageView mUpLeft, mUpRight, mDownLeft, mDownRight;
     private ImageView mLoop;
+    private View mArea;
 
     private float mDensity;
     private int mScreenWidth;
@@ -33,13 +34,18 @@ public class Scene {
     ImageView[] mHands;
     private int currentSniper = R.drawable.sniper_2;
 
-    public Scene(Context context, RelativeLayout relativeLayout) {
+    public Scene(final Context context, RelativeLayout relativeLayout) {
         mRelativeLayout = relativeLayout;
         mDensity = context.getResources().getDisplayMetrics().density;
         calcMainDists(context);
 
         buildLoop(context);
         buildHands(context);
+        mDownRight.post(new Runnable() {
+            @Override public void run() {
+                buildArea(context);
+            }
+        });
     }
 
     public void changeSniper(Context context) {
@@ -78,6 +84,64 @@ public class Scene {
         mLoop.setY(400);
         mLoop.setScaleType(ImageView.ScaleType.FIT_XY);
         mRelativeLayout.addView(mLoop, new RelativeLayout.LayoutParams(mLoopLength, mLoopLength));
+    }
+
+    private void buildArea(Context context) {
+        mArea = new View(context);
+
+        mArea.setX(mUpLeft.getX() + mHandLength / 2);
+        mArea.setY(mUpLeft.getY() + mHandLength / 2);
+        mArea.setBackgroundColor(Color.YELLOW);
+        mArea.setAlpha(0.2f);
+
+        int width = (int) (mUpLeft.getX() - mUpRight.getX());
+        int height = (int) (mUpLeft.getY() - mDownLeft.getY());
+
+        mRelativeLayout.addView(mArea, new RelativeLayout.LayoutParams(width, height));
+        setAreaListener();
+
+    }
+
+    private void setAreaListener() {
+        mArea.setOnTouchListener(new View.OnTouchListener() {
+            private float xCoOrdinate, yCoOrdinate;
+
+            @Override public boolean onTouch(View view, MotionEvent event) {
+                view.getParent().requestDisallowInterceptTouchEvent(true);
+
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN: {
+                        xCoOrdinate = view.getX() - event.getRawX();
+                        yCoOrdinate = view.getY() - event.getRawY();
+                        mLoop.setVisibility(View.VISIBLE);
+                    }
+                    break;
+
+                    case MotionEvent.ACTION_MOVE: {
+                        float x = event.getRawX() + xCoOrdinate;
+                        float y = event.getRawY() + yCoOrdinate;
+
+                        move(mDownRight, x + (mUpRight.getX() - mUpLeft.getX()), y + (mDownRight.getY() - mUpRight.getY()));
+                        move(mUpRight, x + (mUpRight.getX() - mUpLeft.getX()), y);
+                        move(mDownLeft, x, y + (mDownRight.getY() - mUpRight.getY()));
+                        move(mUpLeft, x, y);
+
+                        move(mArea, x + mHandLength / 2, y + mHandLength / 2);
+                    }
+                    break;
+
+                    case MotionEvent.ACTION_UP: {
+                        mLoop.setVisibility(View.GONE);
+                    }
+                }
+                return true;
+            }
+
+        });
+    }
+
+    private void move(View view, float x, float y) {
+        view.animate().x(x).y(y).setDuration(0).start();
     }
 
     private void buildHands(Context context) {
@@ -121,11 +185,15 @@ public class Scene {
                         float yToMove = event.getRawY() + yCoOrdinate;
 
                         view.animate().x(xToMove).y(yToMove).setDuration(0).start();
+
                         xDependView.animate().x(xToMove).setDuration(0).start();
                         yDependView.animate().y(yToMove).setDuration(0).start();
 
                         drawLoop(xToMove, yToMove);
                         moveLoop(xToMove, yToMove);
+
+                        moveArea(mUpLeft.getX(), mUpLeft.getY());
+
                     }
                     break;
 
@@ -136,6 +204,17 @@ public class Scene {
                 return true;
             }
         });
+    }
+
+    private void moveArea(float x, float y) {
+
+        mArea.getLayoutParams().width = (int) (mUpRight.getX() - x);
+        mArea.getLayoutParams().height = (int) (mDownLeft.getY() - y);
+
+        x += mHandLength / 2;
+        y += mHandLength / 2;
+
+        mArea.animate().x(x).y(y).setDuration(0).start();
     }
 
 
@@ -162,6 +241,8 @@ public class Scene {
 
         mLoop.animate().x(x).y(y).setDuration(0).start();
     }
+
+    //——————————————————————————————————————————————————————————————————————
 
     //—————————————————————————————————————————————————————————————————————— bitmap
 
