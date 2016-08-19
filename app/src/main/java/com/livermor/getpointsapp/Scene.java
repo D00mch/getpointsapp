@@ -177,6 +177,7 @@ public class Scene {
                         xCoOrdinate = view.getX() - event.getRawX();
                         yCoOrdinate = view.getY() - event.getRawY();
                         mLoop.setVisibility(View.VISIBLE);
+                        mArea.setVisibility(View.INVISIBLE);
                     }
                     break;
 
@@ -199,6 +200,7 @@ public class Scene {
 
                     case MotionEvent.ACTION_UP: {
                         mLoop.setVisibility(View.GONE);
+                        mArea.setVisibility(View.VISIBLE);
                     }
                 }
                 return true;
